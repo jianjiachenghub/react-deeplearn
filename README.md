@@ -79,6 +79,9 @@ React@16.8.6原理浅析（源码浅析） - 掘金
 React16源码之React Fiber架构 - 掘金
 
 
+怎样学习React？当然是自己动手实现一个React啦 - 掘金
+
+
 react fiber 主流程及功能模块梳理 - 掘金
 
 
