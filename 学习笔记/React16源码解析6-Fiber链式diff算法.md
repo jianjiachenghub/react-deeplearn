@@ -1,0 +1,8 @@
+## 未完成
+>详细的源码可以参考我讲React fiber那篇，这里只截取部分关键代码，是在scheduleWork后进入workLoop的beginWork里
+
+链表的每一个节点是 Fiber，而不是在 16 之前的虚拟DOM 节点。每一个Fiber 都有
+React16 的 diff 策略采用从链表头部开始比较的算法，是层次遍历
+
+
+React加入fiber架构后，最选调度之前通过enqueueUpdate函数维护的UpdateQueue就是挂载在组件对应的fiber节点上，我们更新的通过调度最后会进入到updateClassComponent方法，里面最终会调用一个getStateFromUpdate来获取最终的state状态
