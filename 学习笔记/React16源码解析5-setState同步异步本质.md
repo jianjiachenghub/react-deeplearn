@@ -1,3 +1,14 @@
+## 先说总结
+
+- setState 只在合成事件和钩子函数中是“异步”的
+- setState在原生事件和 setTimeout 中都是同步的。
+- 回调式setState(partialState, callback) 的callback能同步拿到更新
+
+**注意：**“异步”打了引号,因为setState的“异步”并不是说内部由异步代码实现，其实本身执行的过程和代码都是同步的，只是合成事件和钩子函数的调用顺序在更新之前，导致在合成事件和钩子函数中没法立马拿到更新后的值，形式了所谓的“异步”
+
+- setState 的批量更新优化也是建立在“异步”（合成事件、钩子函数）之上的，在原生事件和setTimeout 中不会批量更新
+- 在“异步”中如果对同一个值进行多次 setState ， setState 的批量更新策略会对其进行覆盖，取最后一次的执行，如果是同时 setState 多个不同的值，在更新时会对其进行合并批量更新。
+
 ## setState
 
 我们调用this.setState方法的时候，调用了this.updater.enqueueSetState
@@ -367,7 +378,7 @@ class IncrementByObject extends React.Component {
 
 #### 看源码分析原因
 
->详细的源码可以参考我讲React fiber那篇，这里只截取部分关键代码，是在scheduleWork后进入workLoop的beginWork里
+>详细的源码可以参考我讲React Scheduler那篇，这里只截取部分关键代码，是在scheduleWork后进入workLoop的beginWork里
 
 React加入fiber架构后，最选调度之前通过enqueueUpdate函数维护的UpdateQueue就是挂载在组件对应的fiber节点上，我们更新的通过调度最后会进入到updateClassComponent方法，里面最终会调用一个getStateFromUpdate来获取最终的state状态
 
