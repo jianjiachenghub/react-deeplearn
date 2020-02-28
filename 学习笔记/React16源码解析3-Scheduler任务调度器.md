@@ -410,6 +410,11 @@ function flushFirstCallback(node) {
   callback(deadlineObject);
 }
 ```
+## 
+
+到这里就是unstable_scheduleCallback/scheduleCallback方法执行的全部流程，这个方法的调用就是在 updateQueue 后调用的 scheduleWork 方法里最后执行的，详细注明进入scheduleWork，在下一篇Render流程里
+
+-----------------
 
 ###  scheduleWork（计划任务）
 
@@ -562,7 +567,7 @@ function addRootToSchedule(root: FiberRoot, expirationTime: ExpirationTime) {
 
 ### 同步更新performSyncWork
 
-performSyncWork这个方法同步异步都会调用，同步调用的时候没有传参数，不会进入if，所以相当于直接执行performWork(NoWork, dl);
+performSyncWork这个方法同步异步都会调用，同步调用的时候没有传参数，不会进入if，所以相当于直接执行performWork(NoWork, dl);异步调用首先进入到的是**scheduleCallbackWithExpirationTime方法，然后调用 unstable_scheduleCallback的时候把performAsyncWork方法当成回调传了进去，在浏览器空闲的时候调用，且在内部维护了一个异步更新队列，根据到期时间排序**
 
 ```
 function performAsyncWork(dl) {

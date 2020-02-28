@@ -1,13 +1,14 @@
 // 索引记录节点的序号
 let serialNumber = 0;
 
-export function diff(oldTree, newTree) {
+function diff(oldTree, newTree) {
   // 声明变量patches用来存放补丁的对象
   let patches = {};
   // 深度优先搜索，并把sum带下去
   dfsWalk(oldTree, newTree, serialNumber, patches);
   return patches;
 }
+
 
 function dfsWalk(oldNode, newNode, index, patches) {
   // 收集该元素的差异
@@ -84,20 +85,24 @@ function createElement(type, props, children) {
 }
 
 let virtualDom = createElement("ul", { class: "list" }, [
-  createElement("li", { class: "item" }, ["周杰伦"]),
-  createElement("li", { class: "item" }, ["林俊杰"]),
-  createElement("li", { class: "item" }, ["王力宏"])
+  createElement("li", { class: "item" }, ["1"]),
+  createElement("li", { class: "item" }, ["2"]),
+  createElement("li", { class: "item" }, ["3"]),
+  createElement("li", { class: "item" }, ["4"]),
 ]);
 console.log(virtualDom)
 
 // +++
 // 创建另一个新的虚拟DOM
 let virtualDom2 = createElement("ul", { class: "list-group" }, [
-  createElement("li", { class: "item active" }, ["七里香"]),
-  createElement("li", { class: "item" }, ["一千年以后"]),
-  createElement("li", { class: "item" }, ["需要人陪"])
+  createElement("li", { class: "item active" }, ["1"]),
+  createElement("li", { class: "item" }, ["22"]),
+  createElement("li", { class: "item" }, ["33"]),
+  createElement("li", { class: "item" }, ["4"])
 ]);
+console.log(virtualDom2)
 // diff一下两个不同的虚拟DOM
 let patches = diff(virtualDom, virtualDom2);
 
 console.log(patches);
+console.log(123)

@@ -162,7 +162,7 @@ let handle = window.requestIdleCallback((idleDeadline) => {
 - Idle (没有超时时间) 一些没有必要做的任务 (e.g. 比如隐藏的内容), 可能会被饿死
 
 ### 计算到期时间 expriationTime
->这里是调度队列里挂载的到期时间，在更新队列里还计算了一个expriationTime，且大小代表的含义与这里相反，具体原因我还没早点，提了一个问题，望大佬们解答：[React16expirationTime大小与优先级的问题-未解决](https://segmentfault.com/q/1010000021661224)
+>这里是调度队列里挂载的到期时间，在更新队列里还计算了一个expriationTime，且大小代表的含义与这里相反，具体原因我还没找到，提了一个问题，望大佬们解答：[React16expirationTime大小与优先级的问题-未解决](https://segmentfault.com/q/1010000021661224)
 
 expriationTime = 当前时间+任务优先级的常量
 
@@ -190,8 +190,15 @@ expriationTime会作为requestIdleCallback的参数idleDeadline传进去
 
 ### requestIdleCallback和requestAnimationFrame区别
 
-requestAnimationFrame的回调会在每一帧确定执行，属于高优先级任务，而requestIdleCallback的回调则不一定，属于低优先级任务。
+- requestAnimationFrame的回调会在每一帧确定执行，属于高优先级任务，而requestIdleCallback的回调则不一定，属于低优先级任务。
 
+
+- 如果我们在requestIdleCallback里面做DOM修改的话，之前所做的布局计算都会失效，而且如果下一帧里有获取布局（如getBoundingClientRect、clientWidth）等操作的话，浏览器就不得不执行强制重排工作,这会极大的影响性能，另外由于修改dom操作的时间是不可预测的，因此很容易超出当前帧空闲时间的阈值
+
+- 在requestIdleCallback里面的应该是小块的microTask微任务（因为在事件循环或者说是本帧的末尾执行）并且可预测时间的任务
+
+- requestAnimationFrame可以做DOM修改，因为在计算布局前就会执行回调
+- 当 requestAnimationFrame() 运行在后台标签页或者隐藏的 `<iframe>` 里时，requestAnimationFrame() 会被暂停调用以提升性能和电池寿命
 
 
 ## 如何实现requestIdleCallback
@@ -217,6 +224,11 @@ requestIdleCallback这个函数的兼容性并不是很好，并且它还有一�
 当我们调用requestAnimationFrameWithTimeout并传入一个callback的时候，会启动一个requestAnimationFrame和一个setTimeout,两者都会去执行callback。但由于requestAnimationFrame执行优先级相对较高，它内部会调用clearTimeout取消下面定时器的操作。所以在页面active情况下的表现跟requestAnimationFrame是一致的。
 
 到这里大家应该明白了，一开始的基础知识里说了，requestAnimationFrame在页面切换到未激活的时候是不工作的，这时requestAnimationFrameWithTimeout就相当于启动了一个100ms的定时器，接管任务的执行工作。这个执行频率不高也不低，既能不影响cpu能耗，又能保证任务能有一定效率的执行。
+
+## 注意
+ 切分后的fiber node，一个 node 基本不会超过16帧， 如果超出16帧，也得完成这次 fiber node 处理之后，再查看是否还有时间，没有时间 则会询问浏览器是否有在等待的 task或者优先级的处理，有则会暂停fiber 的 node 树的进一步分析，切线程，如果没有，则会继续处理这个fiber树。
+所以理论上 一个 fiber node 如果超过16帧，也是会卡顿的。就例如是个死循环。。这时候页面也是卡死
+只是一般不会有超过16帧的情况
 
 ## 总结
 
