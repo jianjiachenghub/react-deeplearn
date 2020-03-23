@@ -416,7 +416,7 @@ RootFiber相当于是最顶层的fiber对象，其实每一个节点都对应一
 ```
 interface Fiber {
   /**
-   * ⚛️ 节点的类型信息
+   * nextIndex 节点的类型信息
    */
   // 标记 Fiber 类型, 例如函数组件、类组件、宿主组件
   tag: WorkTag,
@@ -424,7 +424,7 @@ interface Fiber {
   type: any,
 
   /**
-   * ⚛️ 结构信息
+   * nextIndex 结构信息
    */ 
   return: Fiber | null,
   child: Fiber | null,
@@ -433,7 +433,7 @@ interface Fiber {
   key: null | string,
 
   /**
-   * ⚛️ 节点的状态
+   * nextIndex 节点的状态
    */
   // 节点实例(状态)：
   //        对于宿主组件，这里保存宿主组件的实例, 例如DOM节点。
@@ -449,7 +449,7 @@ interface Fiber {
 
 
   /**
-   * ⚛️ 副作用
+   * nextIndex 副作用
    */
   // 当前节点的副作用类型，例如节点更新、删除、移动
   effectTag: SideEffectTag,
@@ -457,7 +457,7 @@ interface Fiber {
   nextEffect: Fiber | null,
 
   /**
-   * ⚛️ 替身
+   * nextIndex 替身
    * 指向旧树中的节点
    */
   alternate: Fiber | null,

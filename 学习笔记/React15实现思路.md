@@ -31,7 +31,7 @@ App这个组件是要被babel用createElement解析成一个多层嵌套的对�
 需要注意的细节：
 
 - 如果一层的类型是string或number，则表示文本节点（这里已经到底了
-- 如果一层类型是function，表示我们定义的组件，需要执行返回实例
+- 如果一层类型是function，表示我们定义的组件，需要执行返回实例，然后执行实例的render拿到组件的Elements描述的UI对象，在做渲染
 - 递归往下遍历的时候注意要把这一层的节点带下去，因为要作为下层的父节点
 - 替换部分React的特殊属性如className、style、合成事件等
 - render里可以挂载的话最好抽离出_render来专门解析出DOM树，因为类组件第一次直接不能挂载就好调用_render
