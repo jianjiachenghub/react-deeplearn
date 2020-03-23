@@ -48,7 +48,156 @@ React针对这一现象提出了一种优化策略：允许开发者对同一层
 
 **注意**：在开发过程中，尽量减少类似将最后一个节点移动到列表首部的操作。当节点数量过大或更新操作过于频繁时，这在一定程度上会影响React的渲染性能。
 
+## ChildrenDiff的源码
+
+
+通过key可以准确地发现新旧集合中的节点都是相同的节点，因此无需进行节点删除和创建，只需要将旧集合中节点的位置进行移动，更新为新集合中节点的位置
+源码：
+```
+_updateChildren: function(nextNestedChildrenElements, transaction, context) {
+  var prevChildren = this._renderedChildren;
+  var nextChildren = this._reconcilerUpdateChildren(
+    prevChildren, nextNestedChildrenElements, transaction, context
+  );
+  if (!nextChildren && !prevChildren) {
+    return;
+  }
+  var name;
+  var lastIndex = 0;
+  var nextIndex = 0;
+  // 首先对新集合的节点进行循环遍历
+  for (name in nextChildren) {
+    // 通过唯一 key 可以判断新老集合中是否存在相同的节点
+    if (!nextChildren.hasOwnProperty(name)) {
+      continue;
+    }
+    var prevChild = prevChildren && prevChildren[name];
+    var nextChild = nextChildren[name];
+    if (prevChild === nextChild) {
+      // 移动节点
+      this.moveChild(prevChild, nextIndex, lastIndex);
+      lastIndex = Math.max(prevChild._mountIndex, lastIndex);
+      prevChild._mountIndex = nextIndex;
+    } else {
+      if (prevChild) {
+        lastIndex = Math.max(prevChild._mountIndex, lastIndex);
+        // 删除节点
+        this._unmountChild(prevChild);
+      }
+      // 初始化并创建节点
+      this._mountChildAtIndex(
+        nextChild, nextIndex, transaction, context
+      );
+    }
+    nextIndex++;
+  }
+  for (name in prevChildren) {
+    if (prevChildren.hasOwnProperty(name) &&
+        !(nextChildren && nextChildren.hasOwnProperty(name))) {
+      this._unmountChild(prevChildren[name]);
+    }
+  }
+  this._renderedChildren = nextChildren;
+},
+// 移动节点
+moveChild: function(child, toIndex, lastIndex) {
+  if (child._mountIndex < lastIndex) {
+    this.prepareToManageChildren();
+    enqueueMove(this, child._mountIndex, toIndex);
+  }
+},
+// 创建节点
+createChild: function(child, mountImage) {
+  this.prepareToManageChildren();
+  enqueueInsertMarkup(this, mountImage, child._mountIndex);
+},
+// 删除节点
+removeChild: function(child) {
+  this.prepareToManageChildren();
+  enqueueRemove(this, child._mountIndex);
+},
+
+_unmountChild: function(child) {
+  this.removeChild(child);
+  child._mountIndex = null;
+},
+
+_mountChildAtIndex: function(
+  child,
+  index,
+  transaction,
+  context) {
+  var mountImage = ReactReconciler.mountComponent(
+    child,
+    transaction,
+    this,
+    this._nativeContainerInfo,
+    context
+  );
+  child._mountIndex = index;
+  this.createChild(child, mountImage);
+},
+```
+
+### 根据源码分析Key的比对策略
+
+**lastIndex表示访问过的新节点在老集合中最右的位置（即最大的位置）**
+- 如果新集合中当前访问的节点比 lastIndex 大，说明当前访问节点在老集合中就比上一个节点位置靠后，则该节点不会影响其他节点的位置，因此不用添加到差异队列中，即不执行移动操作
+- 只有当访问的节点比 lastIndex 小时，才需要进行移动操作。
+- 比如下图前面的AB怎么玩都不用触发CD的移动，你一眼就能看出来，但的告诉React才行，所以标记一个lastIndex来告诉React后面的需不需动
+
+### 第一种没有删除的现象
+
+<img src='./img/KeyDiff1.png'>
+
+column0 | column1 | column2 | column3 | column4 |
+------- | ------- | ------- | ------- | ------- | 
+nextIndex | 节点 | mountIndex | lastIndex | 操作 | 
+0 | B | 1 | 0 | mountIndex(1)>lastIndex(0),lastIndex=mountIndex
+1 | A | 0 | 1 | mountIndex(0) < lastIndex(1),节点A移动至index(1)的位置
+2 | D | 3 | 1 | mountIndex(3)> lastIndex(1),lastIndex=mountIndex
+3 | C | 2 | 3 | mountIndex(2)< lastIndex(3),节点C移动至index(2)的位置
+
+0位置处分析：
+- 从新集合中取得 B，判断老集合中存在相同节点 B，通过对比节点位置判断是否进行移动操作
+- B 在老集合中的位置 B._mountIndex = 1，此时 lastIndex = 0，不满足 child._mountIndex < lastIndex 的条件，因此不对 B 进行移动操作；
+- 更新 lastIndex = Math.max(prevChild._mountIndex, lastIndex)，其中 prevChild._mountIndex 表示 B 在老集合中的位置，则 lastIndex ＝ 1
+- 并将 B 的位置更新为新集合中的位置prevChild._mountIndex = nextIndex
+- 此时新集合中 B._mountIndex = 0，nextIndex++ 进入下一个节点的判断。
+  
+1位置处分析：
+- 从新集合中取得 A，判断老集合中存在相同节点 A，通过对比节点位置判断是否进行移动操作
+- A 在老集合中的位置 A._mountIndex = 0，此时 lastIndex = 1，满足 child._mountIndex < lastIndex的条件，因此对 A 进行移动操作enqueueMove(this, child._mountIndex, toIndex)
+- 其中 toIndex 其实就是 nextIndex，表示 A 需要移动到的位置；更新 lastIndex = Math.max(prevChild._mountIndex, lastIndex)
+- lastIndex ＝ 1，并将 A 的位置更新为新集合中的位置 prevChild._mountIndex = nextIndex，此时新集合中A._mountIndex = 1，nextIndex++ 进入下一个节点的判断。
+
+然后往后循环就行了，其终极目标就是用最少的移动来完成节点的更新
+
+### 第二种有删除节点的情况
+<img src='./img/KeyDiffDelOne.png'>
+
+index | 节点 | oldIndex | maxIndex | 操作
+------- | ------- | ------- | ------- | -------
+0 | B | 1 | 0 | oldIndex(1)>maxIndex(0)，maxIndex=oldIndex
+1 | E | - | 1 | oldIndex不存在，添加节点E至index(1)的位置
+2 | C | 2 | 1 | 不操作
+3 | A | 0 | 3 | oldIndex(0)< maxIndex(3),节点A移动至index(3)的位置
+
+最后还需要对旧集合进行循环遍历，找出新集合中没有的节点，此时发现存在这样的节点D，因此删除节点D，到此 diff 操作全部完成。
+
+
+* oldIndex存在
+  * 当oldIndex>maxIndex时，将oldIndex的值赋值给maxIndex
+  * 当oldIndex=maxIndex时，不操作
+  * 当oldIndex< maxIndex时，将当前节点移动到index的位置
+* oldIndex不存在
+ * 新增当前节点至index的位置
+
+### 加上Key值的Diff算法还是有缺陷
+
+从末尾插入头部就会造成整层的移动，所以React官方也表明避免往头部插入数据
+<img src='./img/Child避免从末尾插入头部.png'>
 
 ## 总结
 
-<img src='./img/React15diff策略.png'>
+<img src='./img/React15diff策略.png'>  
