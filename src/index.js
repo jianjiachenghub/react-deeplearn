@@ -19,6 +19,21 @@ const ReactDOM = {
   }
 };
 
+class Name extends React.Component {
+  constructor(props) {
+    super(props);
+  }
+    render() {
+      let Name = this.props.name
+      return (
+        <div >
+          <p>JJC</p>
+          <p>{Name}</p>
+        </div>
+      );
+    }
+  }
+
 class Counter extends React.Component {
   constructor(props) {
     super(props);
@@ -60,9 +75,11 @@ class Counter extends React.Component {
         <h1>number: {this.state.num}</h1>
         <button>add</button>
         {this.state.num===101&&<button id='123'>add</button>}
+        <Name name='简'/>
       </div>
     );
   }
 }
+console.log("1233333333",<Counter />)
 
 ReactDOM.render(<Counter />, document.getElementById("root"));
