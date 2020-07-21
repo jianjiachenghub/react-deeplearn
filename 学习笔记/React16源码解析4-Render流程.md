@@ -350,7 +350,7 @@ RootFiber.stateNode = FiberRoot
 
 ### FiberRoot 的结构
 
-```
+```js
 type BaseFiberRootProperties = {|
   // root节点，render方法接收的第二个参数
   containerInfo: any,

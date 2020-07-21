@@ -9,11 +9,16 @@ workLoop->beginWork->finishClassComponent->reconcileChildren
 React16 的 diff 策略采用从链表头部开始比较的算法，是链式的深度优先遍历。
 
 
+react总结：
+1.当更新父组件state中的数据时，其自身组件及所有子组件（无限递归）都会更新
 
+2.更新某个组件，其兄弟组件不更新
+
+3.当更新子组件，父组件不更新
 
 ## WorkLoop里遍历每个工作单元(Fiber节点)
 
-循环单元更新，对整颗 fiberTree 都遍历一遍。
+循环单元更新，对整颗 fiberTree 都遍历一遍（组件更新那么从组件节点进入对比，也就是nextUnitOfWork是组件的第一个子节点）。
 
 还记得之前传入进来的isYieldy的么，如果为false，不可中断，不断的更新下一个节点任务（performUnitOfWork(nextUnitOfWork)），知道整棵树更新完毕。如果可以中断，通过shouldYield()判断当前帧是否还有时间更新，有时间就更新，没有时间了就不更了。
 
@@ -51,6 +56,8 @@ function workLoop(isYieldy) {
 - 4.回到父节点并判断父节点是否存在。如果存在则执行规则 3，否则跳到规则 5
 - 5.当前工作单元为 null，即为完成整个循环
 
+总结就是：有第一个孩子就深度往下遍历，没有往兄弟节点遍历，没有兄弟节点就往上遍历（通过return指针，也就是通常链表里用的pre指针）
+
 <img src='./img/链式遍历.png'>
 
 - completeWork往上指了后才算一个节点完成比对
@@ -62,7 +69,10 @@ function workLoop(isYieldy) {
 
 class 组件的调和过程大致分为两个部分：
 - 生命周期函数的处理
-  - componentWillReceiveProps
+  - componentWillMount废弃
+ - componentWillReceiveProps废弃
+ - shouldComponentUpdate
+ - componentWillUpdate废弃
 - 调和子组件，也就是 diff 算法的过程
 
 一个Class组件一定有一个render函数，并且return的内容会被JSX语法解析成Elements Tree描述UI信息(也可以叫虚拟树),所以我们需要调用 render 函数获取新的 child，用于在之后与老的 child 进行对比。

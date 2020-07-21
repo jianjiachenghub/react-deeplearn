@@ -69,7 +69,7 @@ div.style.width = w + 20
 
 ##  requestIdelCallbackAPI
 
-scheduler会根据当前主线程的使用情况去处理这次update。为了实现这种特性，使用了requestIdelCallbackAPI。对于不支持这个API的浏览器，react会加上pollyfill。通过requestAnimationFrame来实现。
+scheduler会根据当前主线程的使用情况去处理这次update。为了实现这种特性，使用了requestIdelCallbackAPI类似的思想，在浏览器空闲的时候申请调度。react会加上pollyfill，实现类似功能。通过requestAnimationFrame来实现。
 
 
 ## requestAnimationFrame
@@ -92,7 +92,7 @@ let rafId = null;
  * @param time requestAnimationFrame 调用该函数时，自动传入的一个时间
  */
 function requestAnimation(time) {
-  console.log(time);
+  console.log(time);//开始去执行回调函数的时刻。
   // 动画没有执行完，则递归渲染
   if (count < 50) {
     count++;
@@ -115,6 +115,10 @@ cancelAnimationFrame(handle);
 ### requestIdleCallback
 
 requestIdleCallback的意思是让浏览器在'有空'的时候就执行我们的回调，这个回调会传入一个期限，表示浏览器有多少时间供我们执行, 为了不耽误事，我们最好在这个时间范围内执行完毕。
+
+options 可选
+- timeout：回调是否在超时时间前已经执行的状态
+- timeRemaining function 这个参数可以获取当前空闲时间
 
 
 我们所看到的网页，都是浏览器一帧一帧绘制出来的，通常认为FPS为60的时候是比较流畅的，客户端线程执行任务时会以帧的形式划分，在两个执行帧之间，主线程通常会有一小段空闲时间，requestIdleCallback可以在这个空闲期（Idle Period）调用空闲期回调（Idle Callback），执行一些任务

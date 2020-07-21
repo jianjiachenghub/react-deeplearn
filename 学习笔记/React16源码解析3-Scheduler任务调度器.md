@@ -59,7 +59,7 @@ expriationTime = 当前时间+任务优先级过期时间的常量 = performance
 ### 如何以 expriationTime 作为优先级进行排序
 
 React源码了有个unstable_scheduleCallback，意思是当前还是不稳定的，这里就以scheduleCallback作名字。
-scheduleCallback双向循环链表的操作过程来进行优先级的排序
+scheduleCallback双向循环链表的操作过程来进行优先级的排序（新版好像上了堆排序）
 
 scheduleCallback两个参数：
 
@@ -275,6 +275,7 @@ function ensureHostCallbackIsScheduled() {
      }
 
 ```
+为什么用MessageChannel，因为onmessage是宏任务，在上一张paint后执行任务，别优先级应该是宏任务了比较好的的。
 
 然后在requestAnimationFrame回调里发一个postMessage消息，channel.port1接受消息触发onmessage，onmessage是在paint（该帧实际渲染任务完成后）后调用，于是
 

@@ -9,7 +9,7 @@ Fiber 是 React 16 中新的协调引擎。它的主要目的是使 Virtual DOM 
 
 当我们通过render() 和 setState() 进行组件渲染和更新的时候，React 主要有两个阶段：
 
-- 调和阶段(Reconciler)：官方解释。React 会自顶向下通过递归，遍历新数据生成新的 Virtual DOM，然后通过 Diff 算法，找到需要变更的元素(Patch)，放到更新队列里面去。
+- 调和阶段(Reconciler)：官方解释。React 会自顶向下通过递归（15版本），遍历新数据生成新的 Virtual DOM，然后通过 Diff 算法，找到需要变更的元素(Patch)，放到更新队列里面去。
 
 - 渲染阶段(Renderer)：遍历更新队列，通过调用宿主环境的API，实际更新渲染对应元素。宿主环境，比如 DOM、Native、WebGL 等。(如浏览器渲染出页面)
 
@@ -24,7 +24,7 @@ Fiber 也称协程、或者纤程
 
 React Fiber 的思想和协程的概念是契合的: React 渲染的过程可以被中断，可以将控制权交回浏览器，让位给高优先级的任务，浏览器空闲后再恢复渲染。
 
-以 React 通过Fiber 架构，让自己的Reconcilation 过程变成可被中断。 '适时'地让出CPU执行权，除了可以让浏览器及时地响应用户的交互
+以 React 通过Fiber 架构，让自己的Reconcilation 过程变成可被中断。 '适时'地让出执行权，除了可以让浏览器及时地响应用户的交互
 
 ## 为什么需要Fiber(fiber reconciler)
 
@@ -66,7 +66,7 @@ patch阶段把本次更新中的所有DOM change应用到DOM树，是一连串�
 
 按组件拆太粗，显然对大组件不太公平。按工序拆太细，任务太多，频繁调度不划算。
 
-所以Fiber采用的的拆分单位是fiber（fiber tree上的一个节点），实际上就是按虚拟DOM节点拆，因为fiber tree是根据vDOM tree构造出来的，树结构一模一样，只是节点携带的信息有差异
+**所以Fiber采用的的拆分单位是fiber（fiber tree上的一个节点），实际上就是按虚拟DOM节点拆，因为fiber tree是根据vDOM tree构造出来的，树结构一模一样，只是节点携带的信息有差异**
 
 所以，实际上是vDOM node粒度的拆分（以fiber为工作单元），每个组件实例和每个DOM节点抽象表示的实例都是一个工作单元。工作循环中，每次处理一个fiber，处理完可以中断/挂起整个工作循环(完成后确认否还有时间继续下一个任务，存在时继续，不存在下一个任务时自己挂起，主线程不忙的时候再继续。)
 
@@ -205,7 +205,7 @@ Elements
 ```
 ### 双缓冲技术（double buffering）
 
-WorkInProgress Tree 构造完毕，得到的就是新的 Fiber Tree，然后喜新厌旧（把 current 指针指向WorkInProgress Tree，丢掉旧的 Fiber Tree）就好了。
+并不是直接在旧的Fiber tree上更新，当setState后，通过新的Elements结构从旧的Fiber tree上构建出WorkInProgress Tree（这就是diff的过程），当WorkInProgress Tree 构造完毕，得到的就是新的 Fiber Tree（也收集了effects），然后喜新厌旧（把 current 指针指向WorkInProgress Tree，丢掉旧的 Fiber Tree）就好了。
 这样做的好处：
 
 - 能够复用内部对象（fiber）
@@ -237,7 +237,7 @@ reconciliation阶段简单来说就是找到需要更新的工作，通过 Diff 
 
 实际上是1-6的工作循环，7是出口，工作循环每次只做一件事，做完看要不要喘口气。工作循环结束时，workInProgress tree的根节点身上的effect list(记录了包括DOM change在内的所有side effect)就是收集到的所有side effect（因为每做完一个都向上归并）
 
-**所以，构建workInProgress tree的过程就是diff的过程，通过requestIdleCallback来调度执行一组任务，每完成一个任务后回来看看有没有插队的（更紧急的），每完成一组任务，把时间控制权交还给主线程，直到下一次requestIdleCallback回调再继续构建workInProgress tree**
+**所以，构建workInProgress tree的过程就是diff的过程，通过requestIdleCallback（react重写的）来调度执行一组任务，每完成一个任务后回来看看有没有插队的（更紧急的），每完成一组任务，把时间控制权交还给主线程，直到下一次requestIdleCallback回调再继续构建workInProgress tree**
 
 
 ## 总结
