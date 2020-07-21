@@ -892,10 +892,6 @@ function workLoop(isYieldy) {
 ```
 // 开始组件更新
 function performUnitOfWork(workInProgress: Fiber): Fiber | null {
-  // The current, flushed, state of this fiber is the alternate.
-  // Ideally nothing should rely on this, but relying on it here
-  // means that we don't need an additional field on the work in
-  // progress.
   // 获得 fiber 的替身，调和这一阶段都是在替身上完成的
   // 然后直接看 beginWork
   const current = workInProgress.alternate;
