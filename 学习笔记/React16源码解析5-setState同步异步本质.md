@@ -58,6 +58,8 @@ const classComponentUpdater = {
 }
 ```
 
+状态更新都会创建一个保存更新状态相关内容的对象，我们叫他Update。在render阶段的beginWork中会根据Update计算新的state。这里讲这个Update通过enqueueUpdate放到队列UpdateQueue。
+
 ## requestWork
 
 scheduleWork里会执行requestWork方法，这和之前讲过的render流程一致
@@ -488,3 +490,45 @@ Object.assign({}, {count:0}, {count:2});
 Object.assign({}, {count:0}, {count:3});
 ```
 可以看到最终的state的count只会增加3，可以满足我们的期望
+
+## setSate更新的Fiber渲染流程
+
+从fiber到root：从触发状态更新的fiber一直向上遍历到rootFiber（调用markUpdateLaneFromFiberToRoot方法。），并返回rootFiber。由于不同更新优先级不尽相同，所以过程中还会更新遍历到的fiber的优先级。
+
+现在我们拥有一个rootFiber，该rootFiber对应的Fiber树中某个Fiber节点包含一个Update。接下来通知Scheduler，调用的方法是ensureRootIsScheduled。
+
+## 总结流程
+
+```
+触发状态更新（根据场景调用不同方法）
+
+    |
+    |
+    v
+
+创建Update对象（批量更新）
+
+    |
+    |
+    v
+
+从fiber到root（`markUpdateLaneFromFiberToRoot`）
+
+    |
+    |
+    v
+
+调度更新（`ensureRootIsScheduled`）
+
+    |
+    |
+    v
+
+render阶段（`performSyncWorkOnRoot` 或 `performConcurrentWorkOnRoot`）
+
+    |
+    |
+    v
+
+commit阶段（`commitRoot`）
+```
