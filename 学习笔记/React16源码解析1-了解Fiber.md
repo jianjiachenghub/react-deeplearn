@@ -39,6 +39,8 @@ react在进行组件渲染时，从setState开始到渲染完成整个过程（r
 
 ## Fiber的关键特性如下：
 
+- 任务分解的意义 解决上面的问题
+
 - 增量渲染（把渲染任务拆分成块，匀到多帧）
 
 - 更新时能够暂停，终止，复用渲染任务
@@ -205,12 +207,54 @@ Elements
 ```
 ### 双缓冲技术（double buffering）
 
+>https://react.iamkasong.com/process/doubleBuffer.html#mount%E6%97%B6
+
+当我们用canvas绘制动画，每一帧绘制前都会调用ctx.clearRect清除上一帧的画面。
+如果当前帧画面计算量比较大，导致清除上一帧画面到绘制当前帧画面之间有较长间隙，就会出现白屏。为了解决这个问题，我们可以在内存中绘制当前帧动画，绘制完毕后直接用当前帧替换上一帧画面，由于省去了两帧替换间的计算时间，不会出现从白屏到出现画面的闪烁情况。
+
+这种在内存中构建并直接替换的技术叫做双缓存。
+
+React使用“双缓存”来完成Fiber树的构建与替换——对应着DOM树的创建与更新。
+
 并不是直接在旧的Fiber tree上更新，当setState后，通过新的Elements结构从旧的Fiber tree上构建出WorkInProgress Tree（这就是diff的过程），当WorkInProgress Tree 构造完毕，得到的就是新的 Fiber Tree（也收集了effects），然后喜新厌旧（把 current 指针指向WorkInProgress Tree，丢掉旧的 Fiber Tree）就好了。
 这样做的好处：
 
 - 能够复用内部对象（fiber）
 - 节省内存分配、GC的时间开销
 - 就算运行中有错误，也不会影响 View 上的数据
+
+current Fiber树中的Fiber节点被称为current fiber，workInProgress Fiber树中的Fiber节点被称为workInProgress fiber，他们通过alternate属性连接。
+```
+currentFiber.alternate === workInProgressFiber;
+workInProgressFiber.alternate === currentFiber;
+```
+
+React应用的根节点通过current指针在不同Fiber树的rootFiber间切换来实现Fiber树的切换。
+
+当workInProgress Fiber树构建完成交给Renderer渲染在页面上后，应用根节点的current指针指向workInProgress Fiber树，此时workInProgress Fiber树就变为current Fiber树。
+
+
+#### 首屏渲染的情况
+
+在构建workInProgress Fiber树时会尝试复用current Fiber树中已有的Fiber节点内的属性，在首屏渲染时只有rootFiber存在对应的current fiber（即rootFiber.alternate）。
+
+<img src="./img/React双向缓存首屏.png">
+
+已构建完的workInProgress Fiber树在commit阶段渲染到页面。此时DOM更新为右侧树对应的样子。fiberRootNode的current指针指向workInProgress Fiber树使其变为current Fiber 树。
+
+<img src="./img/React双向缓存首屏渲染完成.png">
+
+
+
+#### 进入更新流程情况
+
+接下来我们点击p节点触发状态改变，这会开启一次新的render阶段并构建一棵新的workInProgress Fiber 树。
+
+<img src="./img/React双缓存技术.png">
+
+workInProgress Fiber 树在render阶段完成构建后进入commit阶段渲染到页面上。渲染完毕后，workInProgress Fiber 树变为current Fiber 树。
+
+<img src="./img/React双缓存完成更新.png">
 
 
 ## reconciliation 阶段
